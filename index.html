@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#07070a">
+<meta name="robots" content="noindex, nofollow">
+<title>TikTok Avançado · Área de membros</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="mk" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c4b5fd"/><stop offset=".5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#6d28d9"/>
+    </linearGradient>
+    <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#6d28d9"/>
+    </linearGradient>
+    <symbol id="logo" viewBox="0 0 32 32">
+      <path d="M4.5 7.6c0-1.6 1.3-2.9 2.9-2.9h17.2c1.6 0 2.9 1.3 2.9 2.9s-1.3 2.9-2.9 2.9H7.4c-1.6 0-2.9-1.3-2.9-2.9z" fill="url(#mk)"/>
+      <path d="M13.1 10.5h5.8v14.2a2.9 2.9 0 0 1-5.8 0z" fill="url(#mk)"/>
+      <path d="M13.1 10.5h5.8l-5.8 4.6z" fill="#3b0f86" opacity=".6"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="splash" id="splash" role="status" aria-label="Carregando sua área">
+  <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
+  <div class="spinner" aria-hidden="true"></div>
+</div>
+
+<div class="splash" id="gate" hidden>
+  <div class="gate">
+    <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
+    <h1 id="gateTitle"></h1>
+    <p id="gateText"></p>
+    <div class="actions">
+      <button class="btn-primary" type="button" id="gateRetry">Tentar de novo</button>
+      <button class="btn-ghost" type="button" id="gateOut">Sair da conta</button>
+    </div>
+  </div>
+</div>
+
+<div class="preview-bar" id="previewBar" hidden>
+  <span>Você está vendo a área como um aluno no primeiro dia.</span>
+  <button class="btn-sm" type="button" id="previewOff">Voltar para a visão de admin</button>
+</div>
+
+<header class="topnav" id="topnav" hidden>
+  <a class="brand" href="#inicio" aria-label="TikTok Avançado, ir para o início">
+    <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
+    <span class="wordmark">TikTok Avançado<small>Área de membros</small></span>
+  </a>
+  <nav class="tabs" aria-label="Seções">
+    <a class="tab" data-tab="inicio" href="#inicio">Início</a>
+    <a class="tab" data-tab="modulos" href="#modulos">Módulos</a>
+    <a class="tab" data-tab="materiais" href="#materiais">Materiais</a>
+    <a class="tab" data-tab="admin" href="#admin" id="adminTab" hidden>Admin</a>
+  </nav>
+  <div class="nav-right">
+    <div class="op-chip"><span class="dot" aria-hidden="true"></span><span><span class="t" id="chipPct"></span><span class="s" id="chipSub"></span></span></div>
+    <button class="avatar" id="avatarBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu" aria-label="Abrir menu da conta"></button>
+    <div class="menu" id="menu" hidden>
+      <div class="menu-head"><b id="menuName"></b><span id="menuMail"></span></div>
+      <button type="button" id="previewBtn" hidden>Ver como aluno novo</button>
+      <button type="button" id="pwBtn">Trocar senha</button>
+      <button type="button" class="out" id="logoutBtn">Sair</button>
+    </div>
+  </div>
+</header>
+
+<main class="content" id="view" hidden></main>
+
+<section id="login" hidden>
+  <form class="login-card" id="loginForm" novalidate>
+    <div class="login-brand">
+      <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
+      <span class="wordmark">TikTok Avançado<small>Área de membros</small></span>
+    </div>
+    <div>
+      <h1>Entre na sua área</h1>
+      <p class="sub">Use o e-mail e a senha que você recebeu.</p>
+    </div>
+    <div class="field">
+      <label for="email">E-mail</label>
+      <input id="email" name="email" type="email" autocomplete="email" placeholder="voce@email.com">
+    </div>
+    <div class="field">
+      <label for="senha">Senha</label>
+      <input id="senha" name="senha" type="password" autocomplete="current-password" placeholder="Sua senha">
+    </div>
+    <div class="msg" id="loginMsg" role="status" aria-live="polite"></div>
+    <button class="btn-primary" type="submit" id="loginBtn">Entrar</button>
+    <button class="btn-ghost" type="button" id="forgotBtn">Esqueci minha senha</button>
+    <p class="login-foot">As 2 primeiras aulas abrem na hora e o restante 7 dias depois da sua entrada.</p>
+  </form>
+</section>
+
+<div class="dialog" id="pwDialog" role="dialog" aria-modal="true" aria-labelledby="pwTitle" hidden>
+  <form class="dialog-card" id="pwForm" novalidate>
+    <h2 id="pwTitle">Trocar senha</h2>
+    <div class="field">
+      <label for="pw1">Nova senha</label>
+      <input id="pw1" type="password" autocomplete="new-password" placeholder="Pelo menos 8 caracteres">
+    </div>
+    <div class="field">
+      <label for="pw2">Repita a nova senha</label>
+      <input id="pw2" type="password" autocomplete="new-password">
+    </div>
+    <div class="msg" id="pwMsg" role="status" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn-primary" type="submit" id="pwSave">Salvar nova senha</button>
+      <button class="btn-ghost" type="button" id="pwCancel">Cancelar</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.9"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
