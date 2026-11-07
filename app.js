@@ -104,7 +104,8 @@
   const getMod = n => MODULES.find(m => m.n === n);
   const getLesson = id => ALL.find(l => l.id === id);
   const modLessons = m => ALL.filter(l => l.m === m.n);
-  const capa = n => `capas/modulo-${n}.svg`;
+  const ASSETS = window.TTA_ASSETS || '';
+  const capa = n => `${ASSETS}capas/modulo-${n}.svg`;
 
   /* ===== estado (vem do Supabase) ===== */
   const S = { user: null, admin: false, preview: false, previewStart: 0, mat: null, prog: {}, videos: {}, mats: [], all: [] };
