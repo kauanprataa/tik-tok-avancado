@@ -296,7 +296,8 @@
     const notices = NOTICES.concat(lc ? [{ tag: 'Em breve', cls: 'warn', title: `${lc} aulas liberam em ${inDays()}`, text: `O restante do curso abre dia ${relDate()}, ${RELEASE.days} dias depois da sua entrada.` }] : []);
     const left = s.total - s.done;
     $('#view').innerHTML = `
-      <div class="greet"><h1>${first ? `Olá, ${esc(first)}` : 'Olá!'}</h1><p>${c ? `Bom te ver por aqui. Você está no Módulo ${pad(c.m)}.` : 'Bom te ver por aqui.'}</p></div>
+      <div class="greet-row"><div class="greet"><h1>${first ? `Olá, ${esc(first)}` : 'Olá!'}</h1><p>${c ? `Bom te ver por aqui. Você está no Módulo ${pad(c.m)}.` : 'Bom te ver por aqui.'}</p></div>
+        <button class="btn-refund" type="button" data-act="refund">REEMBOLSO</button></div>
       <section class="hero" aria-label="Seu progresso">${hero}
         <div class="hero-side">${ring(s.pct)}<div class="side-stats"><span class="eyebrow">Progresso do curso</span>
           <b class="side-big">${s.done} de ${s.total} aulas</b><p>${milestone}</p></div></div>
@@ -477,6 +478,7 @@
       <div class="seg" role="tablist" aria-label="Seções do admin">
         <button type="button" role="tab" data-atab="alunos" aria-selected="${adminTab === 'alunos'}">Alunos</button>
         <button type="button" role="tab" data-atab="conteudo" aria-selected="${adminTab === 'conteudo'}">Vídeos e materiais</button>
+        <button type="button" role="tab" data-atab="reembolsos" aria-selected="${adminTab === 'reembolsos'}">Reembolsos</button>
       </div>
       <div id="adminBody" class="admin-grid"></div>`;
     renderAdminBody();
@@ -484,6 +486,7 @@
   function renderAdminBody() {
     const box = $('#adminBody'); if (!box) return;
     if (adminTab === 'conteudo') return renderConteudo(box);
+    if (adminTab === 'reembolsos') return renderReembolsos(box);
     box.innerHTML = `
       <section class="panel"><div class="panel-head"><h3>Liberar acesso</h3><span class="hint">gera uma senha na hora</span></div>
         <form class="form-row" id="addForm" novalidate>
@@ -626,6 +629,52 @@
     finally { delete busy[r.aula_id]; refreshRow(r.aula_id); }
   }
 
+  /* pedidos de reembolso (admin) */
+  let refunds = null;
+  async function renderReembolsos(box) {
+    box.innerHTML = `<section class="panel"><div class="panel-head"><h3>Pedidos de reembolso</h3><span class="hint" id="rfCount"></span></div><div id="rfList"><p class="empty">Carregando pedidos…</p></div></section>`;
+    const { data, error } = await sb.from('reembolsos').select('*').order('criado_em', { ascending: false });
+    if (!$('#rfList')) return;
+    if (error) { $('#rfList').innerHTML = '<p class="empty">Não foi possível carregar os pedidos. Tente de novo.</p>'; return; }
+    refunds = data || [];
+    drawRefunds();
+  }
+  function drawRefunds() {
+    const el = $('#rfList'); if (!el) return;
+    const pend = refunds.filter(r => r.status === 'pendente').length;
+    $('#rfCount').textContent = pend === 1 ? '1 pendente' : `${pend} pendentes`;
+    if (!refunds.length) { el.innerHTML = '<p class="empty">Nenhum pedido de reembolso até agora.</p>'; return; }
+    el.innerHTML = `<div class="table-wrap"><table class="alunos"><thead><tr><th>Aluno</th><th>Pedido em</th><th>Motivo</th><th>Status</th><th></th></tr></thead><tbody>
+      ${refunds.map(r => `<tr>
+        <td><b>${esc(r.nome || 'Sem nome')}</b><small>${esc(r.email || '')}</small></td>
+        <td class="num">${fmtDate(r.criado_em)}</td>
+        <td class="motivo">${esc(r.motivo)}</td>
+        <td>${r.status === 'pendente' ? '<span class="pill warn">Pendente</span>' : '<span class="pill pos">Resolvido</span>'}</td>
+        <td><div class="row-actions">${r.status === 'pendente' ? `<button class="btn-sm" type="button" data-act="resolver" data-rid="${r.id}">Marcar como resolvido</button>` : ''}</div></td></tr>`).join('')}
+      </tbody></table></div>
+      <p class="admin-note" style="margin-top:12px">Depois de devolver o dinheiro na plataforma de pagamento, pause o acesso do aluno na aba Alunos.</p>`;
+  }
+  async function resolveRefund(id, btn) {
+    btn.disabled = true;
+    const { error } = await sb.from('reembolsos').update({ status: 'resolvido' }).eq('id', id);
+    if (error) { toast('Não foi possível atualizar. Tente de novo.'); btn.disabled = false; return; }
+    const r = refunds && refunds.find(x => x.id === id); if (r) r.status = 'resolvido';
+    drawRefunds(); toast('Pedido marcado como resolvido.');
+  }
+
+  /* botão REEMBOLSO (aluno) */
+  async function openRefund() {
+    closeMenu();
+    $('#rfMsg').className = 'msg'; $('#rfMsg').textContent = '';
+    $('#rfMotivo').value = '';
+    $('#rfForm').hidden = false; $('#rfDone').hidden = true;
+    $('#rfDialog').hidden = false; $('#rfMotivo').focus();
+    const { data } = await sb.from('reembolsos').select('criado_em, status').eq('user_id', S.user.id).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(1);
+    if (data && data.length && !$('#rfDialog').hidden) refundDone(`Você já pediu reembolso no dia ${fmtDate(data[0].criado_em)}. O suporte vai falar com você pelo e-mail ${S.user.email}.`);
+  }
+  function refundDone(text) { $('#rfForm').hidden = true; $('#rfDoneText').textContent = text; $('#rfDone').hidden = false; $('#rfClose').focus(); }
+  function closeRefund() { $('#rfDialog').hidden = true; }
+
   /* ===== navegação ===== */
   function chrome() {
     const s = stats();
@@ -689,6 +738,8 @@
     if (t) {
       const act = t.dataset.act;
       if (act === 'done') toggleDone(t.dataset.id);
+      else if (act === 'refund') openRefund();
+      else if (act === 'resolver') resolveRefund(t.dataset.rid, t);
       else if (act === 'copy') {
         const text = $('#credText') ? $('#credText').textContent : '';
         if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => toast('Mensagem copiada.'), () => toast('Não deu para copiar. Selecione o texto e copie.'));
@@ -717,7 +768,7 @@
       clearTimeout(e.target._t); e.target._t = setTimeout(() => { const f = $('#noteFoot'); if (f) f.textContent = 'Salvo na sua conta.'; }, 1800);
     }
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); closePw(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); closePw(); closeRefund(); } });
 
   $('#avatarBtn').addEventListener('click', () => {
     const open = $('#menu').hidden; $('#menu').hidden = !open;
@@ -747,6 +798,21 @@
     }
     msg.textContent = ''; $('#senha').value = '';
     boot();
+  });
+
+  /* pedido de reembolso */
+  $('#rfCancel').addEventListener('click', closeRefund);
+  $('#rfClose').addEventListener('click', closeRefund);
+  $('#rfForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const motivo = $('#rfMotivo').value.trim(), msg = $('#rfMsg'), btn = $('#rfSend');
+    if (motivo.length < 5) { msg.className = 'msg err'; msg.textContent = 'Escreva o motivo em poucas palavras.'; $('#rfMotivo').focus(); return; }
+    btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Enviando pedido…';
+    const { error } = await sb.from('reembolsos').insert({ motivo: motivo.slice(0, 2000) });
+    btn.disabled = false;
+    if (error) { msg.className = 'msg err'; msg.textContent = 'Não foi possível enviar agora. Confira sua internet e tente de novo.'; return; }
+    refunds = null;
+    refundDone(`Pedido enviado. O suporte vai falar com você pelo e-mail ${S.user.email}.`);
   });
 
   /* trocar senha */

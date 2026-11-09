@@ -121,6 +121,28 @@
   </form>
 </div>
 
+<div class="dialog" id="rfDialog" role="dialog" aria-modal="true" aria-labelledby="rfTitle" hidden>
+  <div class="dialog-card">
+    <h2 id="rfTitle">Solicitar reembolso</h2>
+    <form class="rf-form" id="rfForm" novalidate>
+      <p class="dialog-text">Conte o motivo do pedido. Ele vai direto para o suporte do curso, que responde pelo seu e-mail.</p>
+      <div class="field">
+        <label for="rfMotivo">Motivo do reembolso</label>
+        <textarea id="rfMotivo" maxlength="2000" placeholder="Escreva em poucas palavras"></textarea>
+      </div>
+      <div class="msg" id="rfMsg" role="status" aria-live="polite"></div>
+      <div class="actions">
+        <button class="btn-danger" type="submit" id="rfSend">Enviar pedido de reembolso</button>
+        <button class="btn-ghost" type="button" id="rfCancel">Cancelar</button>
+      </div>
+    </form>
+    <div class="rf-done" id="rfDone" hidden>
+      <p class="dialog-text" id="rfDoneText"></p>
+      <div class="actions"><button class="btn-ghost" type="button" id="rfClose">Fechar</button></div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.9"></script>
