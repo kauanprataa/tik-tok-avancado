@@ -675,6 +675,126 @@
   function refundDone(text) { $('#rfForm').hidden = true; $('#rfDoneText').textContent = text; $('#rfDone').hidden = false; $('#rfClose').focus(); }
   function closeRefund() { $('#rfDialog').hidden = true; }
 
+  /* ===== conversa de reembolso (estilo app de mensagens) ===== */
+  const WA_MOTIVOS = [
+    'Me arrependi da compra. Ainda posso pedir o reembolso?',
+    'O curso não é o que eu esperava.',
+    'Não vou ter tempo de fazer o curso agora.'
+  ];
+  const WA_TICKS = '<svg class="wa-tick" width="16" height="11" viewBox="0 0 16 11" aria-hidden="true"><path d="M11.1.6 4.8 7.4 2.4 4.9 1.3 6l3.5 3.6 7.4-7.9zM15.2.6 8.9 7.4l-.9-.9-1.1 1.1 2 2 7.4-7.9z" fill="currentColor"/></svg>';
+  const WA_HEADSET = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2.5" y="13" width="4" height="6" rx="1.5"/><rect x="17.5" y="13" width="4" height="6" rx="1.5"/><path d="M19.5 19v.5a2.5 2.5 0 0 1-2.5 2.5h-3"/></svg>';
+  let chatToken = 0, waCurrent = [];
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const nowHM = () => { const d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+
+  function renderChat() {
+    const token = ++chatToken;
+    waCurrent = [];
+    $('#view').innerHTML = `
+      <section class="wa" aria-label="Conversa com o suporte">
+        <header class="wa-head">
+          <a class="wa-back" href="#inicio" aria-label="Voltar para a área de membros"><svg width="22" height="22" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5L5.5 8l4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+          <span class="wa-avatar" aria-hidden="true">${WA_HEADSET}</span>
+          <div class="wa-who"><b>Suporte TikTok Avançado</b><span id="waStatus">online</span></div>
+        </header>
+        <div class="wa-body" id="waBody" aria-live="polite"><div class="wa-day"><span>Hoje</span></div></div>
+        <div class="wa-replies" id="waReplies"></div>
+      </section>`;
+    chatStart(token);
+  }
+  function waAdd(who, text) {
+    const b = $('#waBody'); if (!b) return;
+    const last = b.lastElementChild;
+    const cls = who === 'me' ? 'out' : 'in';
+    const el = document.createElement('div');
+    el.className = 'wa-msg ' + cls + (last && last.classList.contains(cls) ? '' : ' first');
+    el.innerHTML = `<span class="wa-text">${esc(text)}</span><span class="wa-meta">${nowHM()}${who === 'me' ? WA_TICKS : ''}</span>`;
+    b.appendChild(el);
+    b.scrollTop = b.scrollHeight;
+  }
+  function waOptions(opts) {
+    waCurrent = opts;
+    const r = $('#waReplies'); if (!r) return;
+    r.innerHTML = opts.length
+      ? (opts.some(o => !o.nav) ? '<span class="wa-hint">Toque em uma mensagem para enviar</span>' : '')
+        + opts.map((o, i) => `<button type="button" class="wa-opt${o.nav ? ' nav' : ''}" data-wa="${i}">${esc(o.label)}</button>`).join('')
+      : '';
+    const b = $('#waBody'); if (b) b.scrollTop = b.scrollHeight;
+  }
+  function waPick(i) {
+    const o = waCurrent[i]; if (!o) return;
+    waOptions([]);
+    if (!o.nav) waAdd('me', o.label);
+    o.go();
+  }
+  async function waBot(token, texts) {
+    for (const t of texts) {
+      if (token !== chatToken) return false;
+      const b = $('#waBody'); if (!b) return false;
+      const st = $('#waStatus'); if (st) st.textContent = 'digitando…';
+      const typing = document.createElement('div');
+      typing.className = 'wa-msg in typing' + (b.lastElementChild && b.lastElementChild.classList.contains('in') ? '' : ' first');
+      typing.innerHTML = '<span class="dots" aria-label="digitando"><i></i><i></i><i></i></span>';
+      b.appendChild(typing); b.scrollTop = b.scrollHeight;
+      await sleep(650 + Math.min(1300, t.length * 16));
+      typing.remove();
+      if (token !== chatToken) return false;
+      waAdd('bot', t);
+      await sleep(250);
+    }
+    const st = $('#waStatus'); if (st) st.textContent = 'online';
+    return token === chatToken;
+  }
+  function waEnd(token) {
+    if (token !== chatToken) return;
+    waOptions([{ label: 'Voltar para a área de membros', nav: true, go: () => { location.hash = 'inicio'; } }]);
+  }
+  async function chatStart(token) {
+    const days = S.mat ? Math.floor((Date.now() - new Date(S.mat.inicio).getTime()) / DAY) : 0;
+    const within = days < RELEASE.days;
+    const email = (S.user && S.user.email) || 'seu e-mail';
+    const pend = await sb.from('reembolsos').select('criado_em').eq('user_id', S.user.id).eq('status', 'pendente').order('criado_em', { ascending: false }).limit(1);
+    if (token !== chatToken) return;
+    const aberto = pend.data && pend.data[0];
+    let motivo = '';
+
+    const confirmar = () => waOptions([
+      { label: 'Sim, confirmo.', go: async () => {
+        const { error } = await sb.from('reembolsos').insert({ motivo });
+        if (error) {
+          if (await waBot(token, ['Não consegui registrar o seu pedido agora. Confira sua internet e tente de novo, por favor.'])) confirmar();
+          return;
+        }
+        refunds = null;
+        if (await waBot(token, [
+          'Perfeito! Já localizei a sua compra e registrei o seu pedido. Agora vou verificar a situação da compra e a elegibilidade para o reembolso.',
+          `Assim que a análise for concluída, enviaremos um e-mail para ${email} com a resposta e todas as orientações, tá bem?`
+        ])) waEnd(token);
+      } },
+      { label: 'Não, quero continuar no curso.', go: async () => {
+        if (await waBot(token, ['Que bom! Seu acesso continua normal. Qualquer dúvida, é só chamar por aqui.'])) waEnd(token);
+      } }
+    ]);
+
+    waOptions([{ label: 'Olá, quero solicitar o reembolso do meu pedido.', go: async () => {
+      if (aberto) {
+        if (await waBot(token, [
+          `Olá! Você já tem um pedido de reembolso aberto desde ${fmtDate(aberto.criado_em)}.`,
+          `Assim que a análise for concluída, enviaremos um e-mail para ${email} com a resposta e todas as orientações, tá bem?`
+        ])) waEnd(token);
+        return;
+      }
+      if (!await waBot(token, ['Olá! Tudo bem? Claro, podemos te ajudar com isso. Qual o motivo da solicitação?'])) return;
+      waOptions(WA_MOTIVOS.map(m => ({ label: m, go: async () => {
+        motivo = m;
+        const resposta = within
+          ? ['Sim! Compras pela internet podem ser canceladas em até 7 dias corridos, sem precisar justificar. Você ainda está dentro desse prazo.']
+          : ['O prazo de 7 dias para cancelar a compra já passou, mas vamos analisar o seu caso com atenção.'];
+        if (await waBot(token, resposta.concat(['Vou conferir os dados da sua compra. Você confirma o pedido de reembolso do curso TikTok Avançado?']))) confirmar();
+      } })));
+    } }]);
+  }
+
   /* ===== navegação ===== */
   function chrome() {
     const s = stats();
@@ -692,9 +812,12 @@
   function route(keepScroll) {
     if (!S.user) return;
     closeMenu();
+    chatToken++;
     const h = (location.hash || '#inicio').slice(1);
+    document.body.classList.toggle('chat-mode', h === 'reembolso');
     let mm, tab = 'inicio';
-    if (h === 'modulos') { renderModules(); tab = 'modulos'; }
+    if (h === 'reembolso') { renderChat(); tab = ''; }
+    else if (h === 'modulos') { renderModules(); tab = 'modulos'; }
     else if (h === 'materiais') { renderMaterials(); tab = 'materiais'; }
     else if (h === 'admin') { renderAdmin(); tab = 'admin'; }
     else if ((mm = h.match(/^modulo-(\d+)$/))) { renderModule(+mm[1]); tab = 'modulos'; }
@@ -734,11 +857,11 @@
 
   /* ===== eventos ===== */
   document.addEventListener('click', e => {
-    const t = e.target.closest('[data-act],[data-ltab],[data-filter],[data-atab]');
+    const t = e.target.closest('[data-act],[data-ltab],[data-filter],[data-atab],[data-wa]');
     if (t) {
       const act = t.dataset.act;
       if (act === 'done') toggleDone(t.dataset.id);
-      else if (act === 'refund') openRefund();
+      else if (act === 'refund') location.hash = 'reembolso';
       else if (act === 'resolver') resolveRefund(t.dataset.rid, t);
       else if (act === 'copy') {
         const text = $('#credText') ? $('#credText').textContent : '';
@@ -756,6 +879,7 @@
       }
       else if (t.dataset.filter) { matFilter = t.dataset.filter; renderMaterials(); }
       else if (t.dataset.atab) { adminTab = t.dataset.atab; renderAdmin(); }
+      else if (t.dataset.wa !== undefined) waPick(+t.dataset.wa);
       return;
     }
     if (!e.target.closest('.nav-right')) closeMenu();
