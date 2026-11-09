@@ -33,6 +33,9 @@
 
   /* ===== grade do curso ===== */
   const MODULES = [
+    { n: 0, special: true, title: 'Receba seus R$878,75', tag: 'Aula especial', sub: 'Um módulo bônus com uma aula especial.', lessons: [
+      ['Aula especial']
+    ] },
     { n: 1, title: 'Fundamentos do TikTok Shop', tag: 'Comece do zero', sub: 'Conhecendo o mercado e preparando sua estrutura.', lessons: [
       ['Bem-vindo ao TikTok Shop: como funciona o mercado'],
       ['Entendendo o modelo de afiliados e como ganhar comissões', 'Um guia prático para sair da teoria e saber o que fazer no TikTok Shop: escolher produtos, planejar vídeos, publicar, analisar e melhorar.'],
@@ -73,6 +76,7 @@
   const NOTICES = [
     { tag: 'Comece aqui', cls: 'acc', title: 'Assista às 2 primeiras aulas', text: 'Elas já estão liberadas. O guia da aula 02 tem as atividades para você fazer antes de publicar.' }
   ];
+  const ART_SPECIAL = '--px:22%;--py:18%;--qx:92%;--qy:88%;--tint:#f6b64c;--ang:45deg';
   const ART = [
     '--px:18%;--py:12%;--qx:95%;--qy:90%;--tint:var(--accent-deep);--ang:90deg',
     '--px:85%;--py:18%;--qx:5%;--qy:95%;--tint:var(--cyan);--ang:0deg',
@@ -99,12 +103,20 @@
   const fmtDate = t => new Date(t).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const extOf = p => ((String(p).split('/').pop().split('.').pop()) || '').toLowerCase();
 
+  let NUMC = 0;
   const ALL = [];
-  MODULES.forEach(m => m.lessons.forEach((l, i) => ALL.push({ m: m.n, i: i + 1, num: ALL.length + 1, id: lid(m.n, i + 1), title: l[0], desc: l[1] || '' })));
+  MODULES.forEach(m => m.lessons.forEach((l, i) => ALL.push({ m: m.n, i: i + 1, num: m.special ? null : ++NUMC, id: lid(m.n, i + 1), title: l[0], desc: l[1] || '' })));
   const getMod = n => MODULES.find(m => m.n === n);
   const getLesson = id => ALL.find(l => l.id === id);
   const modLessons = m => ALL.filter(l => l.m === m.n);
   const ASSETS = window.TTA_ASSETS || '';
+  const isSpecial = m => !!(m && m.special);
+  const artOf = n => n === 0 ? ART_SPECIAL : ART[n - 1];
+  const modName = n => isSpecial(getMod(n)) ? 'Módulo especial' : 'Módulo ' + pad(n);
+  const modShort = n => isSpecial(getMod(n)) ? 'Especial' : pad(n);
+  const aulaName = l => l.num ? 'Aula ' + pad(l.num) : 'Aula especial';
+  const lessonPrefix = l => l.num ? pad(l.num) + '. ' : '';
+  const moneyTitle = m => esc(m.title).replace(/(R\$\s?[\d.,]+)/, '<span class="money">$1</span>');
   const capa = n => `${ASSETS}capas/modulo-${n}.svg`;
 
   /* ===== estado (vem do Supabase) ===== */
@@ -125,7 +137,8 @@
   const durText = id => durOf(id) ? clock(durOf(id)) : '';
   const modSec = m => modLessons(m).reduce((a, l) => a + durOf(l.id), 0);
   const allDur = list => list.every(l => durOf(l.id));
-  const modMeta = m => `${m.lessons.length} aulas` + (allDur(modLessons(m)) ? ` · ${hm(modSec(m))}` : '');
+  const aulasTxt = n => n === 1 ? '1 aula' : n + ' aulas';
+  const modMeta = m => aulasTxt(m.lessons.length) + (allDur(modLessons(m)) ? ` · ${hm(modSec(m))}` : '');
   const courseMeta = () => `${MODULES.length} módulos · ${ALL.length} aulas` + (allDur(ALL) ? ` · ${hm(ALL.reduce((a, l) => a + durOf(l.id), 0))}` : '');
   const visibleMats = () => S.mats.filter(f => { const l = getLesson(f.aula_id); return l && !isLocked(l); });
   const matsOf = l => visibleMats().filter(f => f.aula_id === l.id);
@@ -223,17 +236,18 @@
     if (modLocked(m)) return `<span class="pill warn">${ICON.lock} ${short ? 'Em' : 'Libera em'} ${inDays()}</span>`;
     if (p.d === p.t) return `<span class="pill pos">${ICON.check} Concluído</span>`;
     if (p.d > 0) return `<span class="pill acc">${p.pct}%</span>`;
+    if (isSpecial(m)) return `<span class="pill gold">★ Destaque</span>`;
     return `<span class="pill">Novo</span>`;
   }
   function poster(m) {
     const p = modProg(m);
-    return `<a class="poster${modLocked(m) ? ' locked' : ''}" href="#modulo-${m.n}" style="${ART[m.n - 1]}" aria-label="Módulo ${pad(m.n)}: ${esc(m.title)}">
+    return `<a class="poster${modLocked(m) ? ' locked' : ''}${isSpecial(m) ? ' special' : ''}" href="#modulo-${m.n}" style="${artOf(m.n)}" aria-label="${modName(m.n)}: ${esc(m.title)}">
       <span class="poster-art" aria-hidden="true"></span>
       <img class="poster-img" src="${capa(m.n)}" alt="" aria-hidden="true">
       <span class="poster-shade" aria-hidden="true"></span>
-      <span class="num" aria-hidden="true">${pad(m.n)}</span>${modPill(m, true)}
+      ${isSpecial(m) ? '' : `<span class="num" aria-hidden="true">${pad(m.n)}</span>`}${modPill(m, true)}
       <span class="poster-body">
-        <span class="eyebrow">Módulo ${pad(m.n)}</span>
+        <span class="eyebrow">${modName(m.n)}</span>
         <h3>${esc(m.title)}</h3>
         <span class="pmeta">${modMeta(m)}</span>
         <span class="pbar"><span style="width:${p.pct}%"></span></span>
@@ -251,7 +265,7 @@
     else if (posOf(l.id) > 0) meta = `Em andamento · ${posOf(l.id)}%`;
     else if (cur && !opts.active) meta = 'Próxima aula';
     const inner = `<span class="lcheck">${icon}</span>
-      <span class="ltext"><b>${pad(l.num)}. ${esc(l.title)}</b>${meta ? `<small>${meta}</small>` : ''}${opts.desc && l.desc ? `<p>${esc(l.desc)}</p>` : ''}</span>
+      <span class="ltext"><b>${lessonPrefix(l)}${esc(l.title)}</b>${meta ? `<small>${meta}</small>` : ''}${opts.desc && l.desc ? `<p>${esc(l.desc)}</p>` : ''}</span>
       <span class="ldur">${locked ? '' : durText(l.id)}</span>`;
     return locked
       ? `<div class="${cls}" aria-disabled="true">${inner}</div>`
@@ -264,9 +278,23 @@
       const cls = /xls|csv/.test(ext) ? 'sheet' : /doc|ppt|zip/.test(ext) ? 'tpl' : '';
       const dl = `${f.nome}.${ext}`;
       return `<div class="file"><span class="ficon ${cls}" aria-hidden="true">${esc(ext.toUpperCase().slice(0, 4))}</span>
-        <span class="finfo"><b>${esc(f.nome)}</b><span>${esc(ext.toUpperCase())}${f.tamanho ? ' · ' + fmtBytes(f.tamanho) : ''}${l ? ` · Aula ${pad(l.num)}` : ''}</span></span>
+        <span class="finfo"><b>${esc(f.nome)}</b><span>${esc(ext.toUpperCase())}${f.tamanho ? ' · ' + fmtBytes(f.tamanho) : ''}${l ? ` · ${aulaName(l)}` : ''}</span></span>
         <span class="factions"><a class="btn-sm" data-path="${esc(f.caminho)}" target="_blank" rel="noopener" aria-disabled="true">Abrir</a><a class="btn-sm" data-path="${esc(f.caminho)}" data-dl="${esc(dl)}" aria-disabled="true">Baixar</a></span></div>`;
     }).join('') + '</div>';
+  }
+
+  function spotlight() {
+    const m = MODULES.find(isSpecial); if (!m) return '';
+    const l = modLessons(m)[0], locked = modLocked(m), done = l && isDone(l.id);
+    return `<section class="spotlight" style="${artOf(0)}" aria-label="Módulo especial">
+      <span class="poster-art" aria-hidden="true"></span>
+      <img class="spot-img" src="${capa(0)}" alt="" aria-hidden="true">
+      <div class="spot-body">
+        <span class="spot-tag">★ Módulo especial</span>
+        <h2>${moneyTitle(m)}</h2>
+        <p>${esc(m.sub)}</p>
+        <div class="actions">${locked ? `<span class="pill warn">${ICON.lock} Libera em ${inDays()}, dia ${relDate()}</span>` : `<a class="btn-gold" href="#aula-${l.id}">${ICON.play} ${done ? 'Rever aula' : 'Assistir agora'}</a>`}<a class="btn-ghost" href="#modulo-0">Ver módulo</a></div>
+      </div></section>`;
   }
 
   /* ===== telas ===== */
@@ -275,10 +303,10 @@
     let hero;
     if (c) {
       const m = getMod(c.m), pct = posOf(c.id), started = pct > 0;
-      hero = `<div class="hero-main has-img"><img class="hero-img" src="${capa(c.m)}" alt="" aria-hidden="true"><span class="hero-num" aria-hidden="true">${pad(c.m)}</span>
+      hero = `<div class="hero-main has-img"><img class="hero-img" src="${capa(c.m)}" alt="" aria-hidden="true"><span class="hero-num" aria-hidden="true">${isSpecial(getMod(c.m)) ? '' : pad(c.m)}</span>
         <span class="eyebrow">${started ? 'Continue de onde parou' : 'Sua próxima aula'}</span>
         <h2>${esc(c.title)}</h2>
-        <p class="hero-meta">Módulo ${pad(c.m)} · ${esc(m.title)} · Aula ${pad(c.num)}</p>
+        <p class="hero-meta">${modName(c.m)} · ${esc(m.title)} · ${aulaName(c)}</p>
         <div class="bar-row"><div class="pbar"><span style="width:${pct}%"></span></div>
           <span class="bar-label">${started ? `${pct}% assistido${durOf(c.id) ? ` · faltam ${clock(durOf(c.id) * (1 - pct / 100))}` : ''}` : `Ainda não iniciada${durOf(c.id) ? ' · ' + durText(c.id) : ''}`}</span></div>
         <div class="actions"><a class="btn-primary" href="#aula-${c.id}">${ICON.play} ${started ? 'Continuar aula' : 'Começar aula'}</a>
@@ -292,12 +320,13 @@
     const cm = c && getMod(c.m), cp = cm && modProg(cm);
     const lc = lockedCount();
     const milestone = lc ? `${FREE.size} aulas liberadas agora. As outras ${lc} liberam em ${inDays()}, dia ${relDate()}.`
-      : cm ? (cp.t - cp.d === 1 ? `Falta 1 aula para fechar o Módulo ${pad(cm.n)}.` : `Faltam ${cp.t - cp.d} aulas para fechar o Módulo ${pad(cm.n)}.`) : 'Todas as aulas concluídas.';
+      : cm ? (cp.t - cp.d === 1 ? `Falta 1 aula para fechar o ${modName(cm.n)}.` : `Faltam ${cp.t - cp.d} aulas para fechar o ${modName(cm.n)}.`) : 'Todas as aulas concluídas.';
     const notices = NOTICES.concat(lc ? [{ tag: 'Em breve', cls: 'warn', title: `${lc} aulas liberam em ${inDays()}`, text: `O restante do curso abre dia ${relDate()}, ${RELEASE.days} dias depois da sua entrada.` }] : []);
     const left = s.total - s.done;
     $('#view').innerHTML = `
-      <div class="greet-row"><div class="greet"><h1>${first ? `Olá, ${esc(first)}` : 'Olá!'}</h1><p>${c ? `Bom te ver por aqui. Você está no Módulo ${pad(c.m)}.` : 'Bom te ver por aqui.'}</p></div>
+      <div class="greet-row"><div class="greet"><h1>${first ? `Olá, ${esc(first)}` : 'Olá!'}</h1><p>${c ? `Bom te ver por aqui. Você está no ${modName(c.m)}.` : 'Bom te ver por aqui.'}</p></div>
         <button class="btn-refund" type="button" data-act="refund">REEMBOLSO</button></div>
+      ${spotlight()}
       <section class="hero" aria-label="Seu progresso">${hero}
         <div class="hero-side">${ring(s.pct)}<div class="side-stats"><span class="eyebrow">Progresso do curso</span>
           <b class="side-big">${s.done} de ${s.total} aulas</b><p>${milestone}</p></div></div>
@@ -310,7 +339,7 @@
         <div class="chip c-yel"><div class="k">Para concluir</div><div class="v">${left ? (left === 1 ? '1 aula' : left + ' aulas') : 'Concluído'}</div><div class="sub">${left ? 'até terminar o curso' : 'parabéns, você terminou o curso'}</div></div>
       </section>
       <div class="sec-head"><h2>Módulos</h2><span class="hint">${courseMeta()}</span></div>
-      <section class="rail" aria-label="Módulos do curso">${MODULES.map(poster).join('')}</section>
+      <section class="rail" aria-label="Módulos do curso">${MODULES.filter(m => !isSpecial(m)).map(poster).join('')}</section>
       <div class="grid2">
         <section class="panel"><div class="panel-head"><h3>Avisos</h3><span class="hint">do produtor</span></div>
           ${notices.map(n => `<div class="notice"><span class="pill ${n.cls}">${n.tag}</span><div><b>${esc(n.title)}</b><p>${esc(n.text)}</p></div></div>`).join('')}</section>
@@ -324,10 +353,10 @@
     $('#view').innerHTML = `
       <div class="greet"><h1>Módulos</h1><p>${courseMeta()}</p></div>
       ${MODULES.map(m => { const p = modProg(m); return `
-        <section class="panel mod">${poster(m)}
+        <section class="panel mod${isSpecial(m) ? ' special' : ''}">${poster(m)}
           <div class="mod-body">
-            <div class="mod-head"><div><span class="eyebrow">Módulo ${pad(m.n)}</span><h2><a href="#modulo-${m.n}">${esc(m.title)}</a></h2><p class="hint"><b class="tagline">${esc(m.tag)}</b> · ${esc(m.sub)}</p></div>
-              <span class="mod-count">${modLocked(m) ? `Libera em ${inDays()} · ${relDate()}` : `${p.d}/${p.t} aulas`}</span></div>
+            <div class="mod-head"><div><span class="eyebrow">${modName(m.n)}</span><h2><a href="#modulo-${m.n}">${esc(m.title)}</a></h2><p class="hint"><b class="tagline">${esc(m.tag)}</b> · ${esc(m.sub)}</p></div>
+              <span class="mod-count">${modLocked(m) ? `Libera em ${inDays()} · ${relDate()}` : `${p.d}/${p.t} ${p.t === 1 ? 'aula' : 'aulas'}`}</span></div>
             <div class="pbar"><span style="width:${p.pct}%"></span></div>
             <div class="lessons">${modLessons(m).map(l => lrow(l)).join('')}</div>
           </div></section>`; }).join('')}`;
@@ -339,10 +368,10 @@
     const start = ls.find(l => !isLocked(l) && !isDone(l.id)) || ls.find(l => !isLocked(l)) || ls[0];
     const mats = visibleMats().filter(f => getLesson(f.aula_id).m === n);
     $('#view').innerHTML = `
-      <nav class="crumbs" aria-label="Você está em"><a href="#modulos">Módulos</a><span aria-hidden="true">/</span><span>Módulo ${pad(n)}</span></nav>
-      <section class="mod-hero" style="${ART[n - 1]}"><span class="poster-art" aria-hidden="true"></span><img class="mod-hero-img" src="${capa(n)}" alt="" aria-hidden="true">
-        <div class="mod-hero-body"><span class="eyebrow">Módulo ${pad(n)} · ${modMeta(m)}</span>
-          <h1>${esc(m.title)}</h1><p><b class="tagline">${esc(m.tag)}</b> · ${esc(m.sub)}</p>
+      <nav class="crumbs" aria-label="Você está em"><a href="#modulos">Módulos</a><span aria-hidden="true">/</span><span>${modName(n)}</span></nav>
+      <section class="mod-hero${isSpecial(m) ? ' special' : ''}" style="${artOf(n)}"><span class="poster-art" aria-hidden="true"></span><img class="mod-hero-img" src="${capa(n)}" alt="" aria-hidden="true">
+        <div class="mod-hero-body"><span class="eyebrow">${modName(n)} · ${modMeta(m)}</span>
+          <h1>${moneyTitle(m)}</h1><p><b class="tagline">${esc(m.tag)}</b> · ${esc(m.sub)}</p>
           ${modLocked(m) ? `<span class="pill warn">${ICON.lock} Libera em ${inDays()}, dia ${relDate()}</span>` : `
           <div class="bar-row"><div class="pbar"><span style="width:${p.pct}%"></span></div><span class="bar-label">${p.d} de ${p.t} aulas concluídas</span></div>
           <div class="actions"><a class="btn-primary" href="#aula-${start.id}">${ICON.play} ${p.d === 0 ? 'Começar módulo' : p.d === p.t ? 'Rever módulo' : 'Continuar módulo'}</a></div>`}
@@ -363,18 +392,18 @@
     const m = getMod(n), done = isDone(l.id), nx = nextAfter(l.id), pv = prevBefore(l.id), vid = S.videos[l.id];
     const mp = modProg(m), nextMod = MODULES.find(x => x.n === n + 1);
     $('#view').innerHTML = `
-      <nav class="crumbs" aria-label="Você está em"><a href="#modulos">Módulos</a><span aria-hidden="true">/</span><a href="#modulo-${n}">Módulo ${pad(n)}</a><span aria-hidden="true">/</span><span>Aula ${pad(l.num)}</span></nav>
+      <nav class="crumbs" aria-label="Você está em"><a href="#modulos">Módulos</a><span aria-hidden="true">/</span><a href="#modulo-${n}">${modName(n)}</a><span aria-hidden="true">/</span><span>${aulaName(l)}</span></nav>
       <div class="lesson-grid">
         <div class="lesson-main">
           ${vid ? `<div class="player has-video"><video id="vid" controls playsinline preload="metadata" controlslist="nodownload" aria-label="Vídeo da aula ${esc(l.title)}"></video><div class="player-msg" id="vidMsg">Carregando o vídeo…</div></div>` : `
-          <div class="player" style="${ART[n - 1]}">
+          <div class="player" style="${artOf(n)}">
             <span class="poster-art" aria-hidden="true"></span>
             <span class="pill player-tag">Vídeo em breve</span>
             <div class="player-soon"><img src="${capa(n)}" alt="" aria-hidden="true"><b>O vídeo desta aula ainda não foi publicado</b><span>Assim que entrar, ele aparece aqui.</span></div>
             <div class="player-title" aria-hidden="true">${esc(l.title)}</div>
           </div>`}
           <div class="lesson-head">
-            <div><span class="eyebrow">Módulo ${pad(n)} · Aula ${pad(l.num)}</span><h1>${esc(l.title)}</h1></div>
+            <div><span class="eyebrow">${modName(n)} · ${aulaName(l)}</span><h1>${esc(l.title)}</h1></div>
             <div class="actions">
               <button class="btn-ghost" type="button" data-act="done" data-id="${l.id}" aria-pressed="${done}">${done ? ICON.check + ' Concluída' : 'Marcar como concluída'}</button>
               ${nx ? `<a class="${done ? 'btn-primary' : 'btn-ghost'}" href="#aula-${nx.id}">Próxima aula ${ICON.next}</a>` : lockedCount() ? `<span class="btn-ghost" aria-disabled="true">${ICON.lock} Próxima aula em ${inDays()}</span>` : ''}
@@ -389,7 +418,7 @@
           ${pv ? `<div><a class="btn-ghost" href="#aula-${pv.id}">${ICON.prev} Aula anterior</a></div>` : ''}
         </div>
         <aside class="panel lesson-side" aria-label="Aulas do módulo">
-          <div class="side-head"><span class="eyebrow">Módulo ${pad(n)}</span><b>${esc(m.title)}</b>
+          <div class="side-head"><span class="eyebrow">${modName(n)}</span><b>${esc(m.title)}</b>
             <div class="pbar"><span style="width:${mp.pct}%"></span></div><span class="hint">${mp.d} de ${mp.t} aulas concluídas</span></div>
           <div class="lessons">${modLessons(m).map(x => lrow(x, { active: l.id })).join('')}</div>
           ${nextMod ? `<div class="side-next">Próximo módulo<a href="#modulo-${nextMod.n}">${pad(nextMod.n)} · ${esc(nextMod.title)}</a></div>` : ''}
@@ -436,7 +465,7 @@
       const m = getMod(l.m);
       box.innerHTML = `<p class="lead">${esc(l.desc || `${m.tag}: ${m.sub.charAt(0).toLowerCase()}${m.sub.slice(1)}`)}</p>
         <div class="facts">${durOf(l.id) ? `<div><div class="k">Duração</div><div class="v">${durText(l.id)}</div></div>` : ''}
-          <div><div class="k">Módulo</div><div class="v">${pad(m.n)} · ${esc(m.title)}</div></div>
+          <div><div class="k">Módulo</div><div class="v">${modShort(m.n)} · ${esc(m.title)}</div></div>
           <div><div class="k">Materiais</div><div class="v">${matsOf(l).length}</div></div></div>`;
     }
   }
@@ -557,14 +586,14 @@
   function renderConteudo(box) {
     box.innerHTML = `
       <section class="panel"><p class="admin-note">Envie os vídeos em <b>MP4</b>, com até ${MAX_MB} MB cada (limite do plano grátis do Supabase). Os arquivos ficam protegidos: o aluno só consegue abrir quando a aula estiver liberada para ele. Ao trocar o vídeo de uma aula, o anterior é apagado.</p></section>
-      ${MODULES.map(m => `<section class="panel"><div class="panel-head"><h3>Módulo ${pad(m.n)} · ${esc(m.title)}</h3><span class="hint">${modLessons(m).filter(l => S.videos[l.id]).length} de ${m.lessons.length} com vídeo</span></div>
+      ${MODULES.map(m => `<section class="panel"><div class="panel-head"><h3>${modName(m.n)} · ${esc(m.title)}</h3><span class="hint">${modLessons(m).filter(l => S.videos[l.id]).length} de ${m.lessons.length} com vídeo</span></div>
         ${modLessons(m).map(l => contentRow(l)).join('')}</section>`).join('')}`;
   }
   function contentRow(l) {
     const v = S.videos[l.id], mats = S.mats.filter(f => f.aula_id === l.id), b = busy[l.id];
     const items = (v ? `<span class="citem vid">${ICON.play}<span>${esc(v.nome)}${v.duracao_seg ? ' · ' + clock(v.duracao_seg) : ''}</span><button type="button" data-act="rm" data-cid="${v.id}" aria-label="Remover o vídeo ${esc(v.nome)}">✕</button></span>` : '')
       + mats.map(f => `<span class="citem"><span>${esc(f.nome)}.${esc(extOf(f.caminho))}</span><button type="button" data-act="rm" data-cid="${f.id}" aria-label="Remover ${esc(f.nome)}">✕</button></span>`).join('');
-    return `<div class="crow" id="crow-${l.id}"><div><b>${pad(l.num)}. ${esc(l.title)}</b>
+    return `<div class="crow" id="crow-${l.id}"><div><b>${lessonPrefix(l)}${esc(l.title)}</b>
         <div class="citems">${items || '<span class="cempty">Sem vídeo e sem material</span>'}${b ? `<span class="cbusy">${esc(b)}</span>` : ''}</div></div>
       <div class="row-actions"><button class="btn-sm${v ? '' : ' pri'}" type="button" data-act="upv" data-aula="${l.id}"${b ? ' disabled' : ''}>${v ? 'Trocar vídeo' : 'Enviar vídeo'}</button>
         <button class="btn-sm" type="button" data-act="upm" data-aula="${l.id}"${b ? ' disabled' : ''}>Adicionar material</button></div></div>`;
@@ -611,7 +640,7 @@
         }
       }
       await reloadContent();
-      toast(`${tipo === 'video' ? 'Vídeo enviado' : 'Material adicionado'} na aula ${pad(l.num)}.`);
+      toast(`${tipo === 'video' ? 'Vídeo enviado' : 'Material adicionado'} na ${aulaName(l).toLowerCase()}.`);
     } catch (e) {
       const m = String((e && e.message) || '');
       toast(/size|large|exceed/i.test(m) ? `Arquivo grande demais. O limite é ${MAX_MB} MB.` : 'Não foi possível enviar o arquivo. Confira sua internet e tente de novo.');
@@ -619,7 +648,7 @@
   }
   async function removeContent(cid) {
     const r = S.all.find(x => x.id === cid); if (!r) return;
-    if (!window.confirm(`Remover "${r.nome}" da aula ${pad(getLesson(r.aula_id).num)}? Os alunos deixam de ver esse arquivo.`)) return;
+    if (!window.confirm(`Remover "${r.nome}" da ${aulaName(getLesson(r.aula_id)).toLowerCase()}? Os alunos deixam de ver esse arquivo.`)) return;
     busy[r.aula_id] = 'Removendo…'; refreshRow(r.aula_id);
     try {
       const a = await sb.storage.from(BUCKET).remove([r.caminho]); if (a.error) throw a.error;

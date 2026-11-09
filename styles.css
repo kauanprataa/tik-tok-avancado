@@ -390,3 +390,23 @@ body.chat-mode .content{max-width:none;padding:0;gap:0}
 .wa-opt.nav{background:var(--wa-out);border-color:transparent;text-align:center;font-weight:700}
 .wa-opt.nav:hover{background:#06705c}
 @media (max-width:640px){.wa{border:0}.wa-msg{max-width:86%}}
+
+/* ---------- módulo especial (destaque) ---------- */
+.spotlight{position:relative;overflow:hidden;isolation:isolate;border-radius:18px;padding:30px 28px;min-height:240px;display:flex;align-items:center;border:1px solid color-mix(in srgb,var(--warn) 50%,var(--line));box-shadow:0 22px 60px -24px rgba(246,182,76,.45)}
+.spotlight .poster-art::after{background:linear-gradient(90deg,rgba(7,7,10,.92) 32%,rgba(7,7,10,.2))}
+.spot-img{position:absolute;right:3%;top:50%;height:132%;max-height:350px;width:auto;transform:translateY(-50%);z-index:-1;pointer-events:none}
+.spot-body{display:flex;flex-direction:column;gap:11px;max-width:620px}
+.spot-tag{align-self:flex-start;font-size:10.5px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#1a1200;background:linear-gradient(135deg,#ffe08a,#f6b64c);padding:5px 11px;border-radius:20px}
+.spotlight h2{font-size:clamp(30px,4.4vw,50px);font-weight:800;letter-spacing:-1.4px;line-height:1.04;max-width:none}
+.money{background:linear-gradient(135deg,#a7f3d0,#36d399 50%,#6ee7b7);-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+.spotlight p{color:var(--muted);font-size:14px;max-width:46ch}
+.spotlight .actions{margin-top:6px}
+.btn-gold{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,#ffe08a,#f6b64c);color:#1a1200;border:none;border-radius:10px;padding:12px 18px;font-weight:800;font-size:14px;white-space:nowrap;box-shadow:0 6px 22px rgba(246,182,76,.35)}
+.btn-gold:hover{filter:brightness(1.05)}
+.pill.gold,.poster .pill.gold{background:linear-gradient(135deg,#ffe08a,#f6b64c);color:#1a1200}
+.poster.special{border-color:color-mix(in srgb,var(--warn) 55%,var(--line))}
+.mod.special{border-color:color-mix(in srgb,var(--warn) 45%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--warn) 7%,var(--panel)),var(--panel))}
+.mod-hero.special{border-color:color-mix(in srgb,var(--warn) 50%,var(--line))}
+@media (max-width:640px){.spotlight{padding:24px 18px;min-height:0}.spot-img{height:86%;opacity:.35;right:-10%}}
+.poster.special .poster-img{top:33%;width:60%}
+@media (max-width:640px){.spot-img{display:none}}
