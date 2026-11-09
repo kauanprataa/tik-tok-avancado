@@ -98,7 +98,33 @@
     <div class="msg" id="loginMsg" role="status" aria-live="polite"></div>
     <button class="btn-primary" type="submit" id="loginBtn">Entrar</button>
     <button class="btn-ghost" type="button" id="forgotBtn">Esqueci minha senha</button>
+    <button class="btn-link" type="button" id="toSignup">Ainda não tem conta? <b>Criar conta</b></button>
     <p class="login-foot">As 2 primeiras aulas abrem na hora e o restante 7 dias depois da sua entrada.</p>
+  </form>
+  <form class="login-card" id="signupForm" novalidate hidden>
+    <div class="login-brand">
+      <svg class="mark" aria-hidden="true"><use href="#logo"/></svg>
+      <span class="wordmark">TikTok Avançado<small>Área de membros</small></span>
+    </div>
+    <div>
+      <h1>Crie sua conta</h1>
+      <p class="sub">Preencha seus dados para entrar na área.</p>
+    </div>
+    <div class="field">
+      <label for="suNome">Nome</label>
+      <input id="suNome" name="nome" type="text" autocomplete="name" placeholder="Seu nome">
+    </div>
+    <div class="field">
+      <label for="suEmail">E-mail</label>
+      <input id="suEmail" name="email" type="email" autocomplete="email" placeholder="voce@email.com">
+    </div>
+    <div class="field">
+      <label for="suSenha">Senha</label>
+      <input id="suSenha" name="senha" type="password" autocomplete="new-password" placeholder="Pelo menos 8 caracteres">
+    </div>
+    <div class="msg" id="suMsg" role="status" aria-live="polite"></div>
+    <button class="btn-primary" type="submit" id="suBtn">Criar conta e entrar</button>
+    <button class="btn-link" type="button" id="toLogin">Já tem conta? <b>Entrar</b></button>
   </form>
 </section>
 

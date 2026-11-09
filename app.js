@@ -946,7 +946,7 @@
     btn.disabled = false;
     if (error) {
       msg.className = 'msg err';
-      msg.textContent = /invalid login/i.test(error.message) ? 'E-mail ou senha incorretos.' : /not confirmed/i.test(error.message) ? 'Seu e-mail ainda não foi confirmado. Fale com o suporte.' : 'Não foi possível entrar agora. Tente de novo em instantes.';
+      msg.textContent = /invalid login/i.test(error.message) ? 'E-mail ou senha incorretos. Se ainda não tem conta, clique em "Criar conta".' : /not confirmed/i.test(error.message) ? 'Seu e-mail ainda não foi confirmado. Fale com o suporte.' : 'Não foi possível entrar agora. Tente de novo em instantes.';
       return;
     }
     msg.textContent = ''; $('#senha').value = '';
@@ -966,6 +966,38 @@
     if (error) { msg.className = 'msg err'; msg.textContent = 'Não foi possível enviar agora. Confira sua internet e tente de novo.'; return; }
     refunds = null;
     refundDone(`Pedido enviado. O suporte vai falar com você pelo e-mail ${S.user.email}.`);
+  });
+
+  /* criar conta pela tela de login */
+  function showSignup(on) {
+    $('#loginForm').hidden = on; $('#signupForm').hidden = !on;
+    $('#loginMsg').textContent = ''; $('#suMsg').textContent = '';
+    (on ? $('#suNome') : $('#email')).focus();
+  }
+  $('#toSignup').addEventListener('click', () => showSignup(true));
+  $('#toLogin').addEventListener('click', () => showSignup(false));
+  $('#signupForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nome = $('#suNome').value.trim(), email = $('#suEmail').value.trim().toLowerCase(), senha = $('#suSenha').value;
+    const msg = $('#suMsg'), btn = $('#suBtn');
+    const fail = (t, el) => { msg.className = 'msg err'; msg.textContent = t; if (el) el.focus(); };
+    if (nome.length < 2) return fail('Digite seu nome.', $('#suNome'));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('Digite um e-mail válido, por exemplo voce@email.com.', $('#suEmail'));
+    if (senha.length < 8) return fail('A senha precisa ter pelo menos 8 caracteres.', $('#suSenha'));
+    btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Criando sua conta…';
+    const { data, error } = await sb.functions.invoke('cadastro', { body: { nome, email, senha } });
+    let erro = data && data.erro;
+    if (error) {
+      erro = 'Não foi possível criar sua conta agora. Tente de novo em instantes.';
+      try { const j = await error.context.json(); if (j && j.erro) erro = j.erro; } catch (x) { /* sem corpo */ }
+    }
+    if (erro) { btn.disabled = false; return fail(erro); }
+    msg.textContent = 'Conta criada. Entrando…';
+    const r = await sb.auth.signInWithPassword({ email, password: senha });
+    btn.disabled = false;
+    if (r.error) return fail('Sua conta foi criada, mas não consegui entrar. Volte e entre com seu e-mail e senha.');
+    $('#suSenha').value = ''; $('#signupForm').hidden = true; $('#loginForm').hidden = false; msg.textContent = '';
+    boot();
   });
 
   /* trocar senha */

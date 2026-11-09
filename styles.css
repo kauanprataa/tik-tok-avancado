@@ -410,3 +410,8 @@ body.chat-mode .content{max-width:none;padding:0;gap:0}
 @media (max-width:640px){.spotlight{padding:24px 18px;min-height:0}.spot-img{height:86%;opacity:.35;right:-10%}}
 .poster.special .poster-img{top:33%;width:60%}
 @media (max-width:640px){.spot-img{display:none}}
+
+/* ---------- criar conta ---------- */
+.btn-link{background:none;border:0;color:var(--muted);font-size:13px;padding:6px;align-self:center}
+.btn-link b{color:var(--accent-2);font-weight:700}
+.btn-link:hover b{text-decoration:underline}
